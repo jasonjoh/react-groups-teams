@@ -2,12 +2,12 @@
 
 ### Summary
 Web part pulls all Microsoft 365 Groups and Teams that the logged in user has access to view.
-1. The Microsoft Groups view has filter option for private or public groups and can switch between viewing all groups or just my groups. 
+1. The Microsoft Groups view has filter option for private or public groups and can switch between viewing all groups or just my groups.
  - Group Name (hover for group description)
  - Link to email
  - Link to SharePoint site
  - Link to calendar
- - Link to Planner plan (if available) 
+ - Link to Planner plan (if available)
  - Group privacy
 2. The Microsoft Teams view has filter option for private or public Teams.
  - Team Name (hover for group description)
@@ -17,7 +17,7 @@ Web part pulls all Microsoft 365 Groups and Teams that the logged in user has ac
  - Link to Planner plan (if available)
  - Link to Team
  - Team privacy
-   Each Team o Uses SharePoint theme. 
+   Each Team o Uses SharePoint theme.
 
 ![picture of the web part in action](./assets/Groups-in-my-organization.png)
 ![picture of the web part in action](./assets/My-Teams-Teams-Side-By-Side-Theme.png)
@@ -26,9 +26,9 @@ Web part pulls all Microsoft 365 Groups and Teams that the logged in user has ac
 
 ## Compatibility
 
-![SPFx 1.10](https://img.shields.io/badge/SPFx-1.10.0-green.svg) 
+![SPFx 1.10](https://img.shields.io/badge/SPFx-1.10.0-green.svg)
 ![Node.js LTS 8.x | LTS 10.x](https://img.shields.io/badge/Node.js-LTS%208.x%20%7C%20LTS%210.x-green.svg)
-![SharePoint Online](https://img.shields.io/badge/SharePoint-Online-yellow.svg) 
+![SharePoint Online](https://img.shields.io/badge/SharePoint-Online-yellow.svg)
 ![Teams N/A: Untested with Microsoft Teams](https://img.shields.io/badge/Teams-N%2FA-lightgrey.svg "Untested with Microsoft Teams")
 ![Workbench Hosted: Only after API permissions granted](https://img.shields.io/badge/Workbench-Hosted-yellow.svg "Only after API permissions granted")
 
@@ -57,14 +57,17 @@ React-Groups-Teams | [Alison Collins](https://github.com/ReactIntern)      |
 - SharePoint Online tenant
 - You need following set of permissions in order to manage Microsoft 365 Groups and Teams
 
-```
-"webApiPermissionRequests": [{
-      "resource": "Microsoft Graph",
-      "scope": "Groups.Read.All"
-    }, {
-      "resource": "Team",
-      "scope": "Teams.ReadBasic.All"
-    }]
+```json
+"webApiPermissionRequests": [
+  {
+    "resource": "Microsoft Graph",
+    "scope": "Group.Read.All"
+  },
+  {
+    "resource": "Microsoft Graph",
+    "scope": "Team.ReadBasic.All"
+  }
+]
 ```
 
 # Minimal Path to Awesome
@@ -92,7 +95,7 @@ This sample illustrates the following concepts on top of the SharePoint Framewor
 - Requesting API permissions in a SharePoint Framework package
 - Communicating with the Microsoft Graph using its REST API
 - Using Office UI Fabric controls for building SharePoint Framework client-side web parts
-- Passing web part properties to React components 
+- Passing web part properties to React components
 
 # Disclaimer
 
