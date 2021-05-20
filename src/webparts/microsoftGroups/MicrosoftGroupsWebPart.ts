@@ -2,13 +2,14 @@ import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import { Version } from '@microsoft/sp-core-library';
 import {
-  BaseClientSideWebPart,
   IPropertyPaneConfiguration,
   PropertyPaneTextField
-} from '@microsoft/sp-webpart-base';
+} from '@microsoft/sp-property-pane';
+import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 
 import * as strings from 'MicrosoftGroupsWebPartStrings';
 import MicrosoftGroups from './components/MicrosoftGroups';
+import { IMicrosoftGroupsProps } from './components/IMicrosoftGroupsProps';
 
 export interface IMicrosoftGroupsWebPartProps {
   description: string;
@@ -17,7 +18,7 @@ export interface IMicrosoftGroupsWebPartProps {
 export default class MicrosoftGroupsWebPart extends BaseClientSideWebPart<IMicrosoftGroupsWebPartProps> {
 
   public render(): void {
-    const element: React.ReactElement<IMicrosoftGroupsWebPartProps > = React.createElement(
+    const element: React.ReactElement<IMicrosoftGroupsProps> = React.createElement(
       MicrosoftGroups,
       {
         context: this.context

@@ -2,9 +2,10 @@ import * as React from 'react';
 import { MSGraphClient } from "@microsoft/sp-http";
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import styles from './MicrosoftGroups.module.scss';
-import { Modal, TooltipHostBase } from 'office-ui-fabric-react';
 import { Icon } from 'office-ui-fabric-react/lib/Icon';
 import { iconClass } from './MyTeams';
+import { GroupDisplay } from './GroupDisplay';
+import { Group, PlannerPlan } from '@microsoft/microsoft-graph-types';
 
 export interface IGraphConsumerProps {
   context: WebPartContext;
@@ -15,171 +16,170 @@ export interface IUserItem {
 }
 
 export interface IGraphConsumerState {
-  AllGroupsresults: any;
-  MyGroupResults: any;
-  plannerId: string;
-  either: string;
-  Allgroupsdisplay: number;
-  mygroupsdisplay: number;
+  AllGroups: GroupDisplay[];
+  ShownGroups: GroupDisplay[];
   mode: string;
   title: string;
   isOpen: boolean;
   MoreDetails: any;
   Name: string;
   Description: string;
-  TenantUrl: string;
-  MyGroupResultsFiltered: any;
-  AllGroupsresultsFiltered: any;
 }
+
 export default class MicrosoftGroups extends React.Component<IGraphConsumerProps, IGraphConsumerState> {
-  public _plannerIDs = [];
-  public _arr = [];
   private graphClient: MSGraphClient = null;
   public Tenant = this.props.context.pageContext.web.absoluteUrl.split('.')[0].split('//')[1];
+
   constructor(props) {
     super(props);
     this.GetPlanner = this.GetPlanner.bind(this);
     this.GetGroups = this.GetGroups.bind(this);
     this.state = {
-      AllGroupsresults: [],
-      MyGroupResults: [],
-      plannerId: '',
-      either: '',
-      Allgroupsdisplay: 0,
-      mygroupsdisplay: 0,
+      AllGroups: [],
+      ShownGroups: [],
       mode: 'All',
       title: 'Groups In My Organization',
       isOpen: false,
       MoreDetails: [],
       Name: '',
-      Description: '',
-      TenantUrl: '',
-      MyGroupResultsFiltered: [],
-      AllGroupsresultsFiltered: []
+      Description: ''
     };
   }
+
+  private GetGroupsToShow(includeOnlyUser: boolean, visibility: string): GroupDisplay[] {
+    if (includeOnlyUser) {
+      if (visibility === 'All') {
+        return this.state.AllGroups.filter(group => group.IsUserMember);
+      } else {
+        return this.state.AllGroups.filter(group => group.Visibility === visibility && group.IsUserMember);
+      }
+    } else {
+      return this.state.AllGroups.filter(group => group.Visibility === visibility);
+    }
+  }
+
   public SwitchGroupList() {
     if (this.state.title === 'Groups In My Organization') {
-      this.setState({ title: "My Groups" });
+      const myGroups = this.GetGroupsToShow(true, this.state.mode);
+      this.setState({
+        title: 'My Groups',
+        ShownGroups: myGroups
+      });
     }
     else {
-      this.setState({ title: 'Groups In My Organization' });
+      const allGroups = this.GetGroupsToShow(false, this.state.mode);
+      this.setState({
+        title: 'Groups In My Organization',
+        ShownGroups: allGroups
+      });
     }
   }
+
   public SwitchGroupList2(Switch) {
-    if (Switch === 'All') {
-      this.setState({ AllGroupsresultsFiltered: this.state.AllGroupsresults });
-      this.setState({ MyGroupResultsFiltered: this.state.MyGroupResults });
-    }
-    else {
-      const SwitchedALL = this.state.AllGroupsresults.filter(item => item.Visibility === Switch);
-      this.setState({ AllGroupsresultsFiltered: SwitchedALL });
-      const SwitchedMY = this.state.MyGroupResults.filter(item => item.Visibility === Switch);
-      this.setState({ MyGroupResultsFiltered: SwitchedMY });
-    }
-    this.setState({ mode: Switch });
+    const showMyGroups = this.state.title === 'My Groups';
+    const groupsToShow = this.GetGroupsToShow(showMyGroups, Switch);
+
+    this.setState({
+      mode: Switch,
+      ShownGroups: groupsToShow
+    });
   }
+
   public OpenModal(GroupInfo) {
     var array = [];
     array.push(GroupInfo);
     this.setState({ isOpen: true, MoreDetails: array, Name: GroupInfo.Name, Description: GroupInfo.Description });
   }
-  public async GetPlanner() {
-    this.state.MyGroupResults.map(async GroupId => {
-      try {
-        this.graphClient = await this.props.context.msGraphClientFactory.getClient();
-        const results: any = await this.graphClient
-          .api(`/groups/${GroupId.Id}/planner/plans`)
-          .version('v1.0')
-          .get();
-        if (results.value.length > 0) {
-          var ID; results.value.map(Items => {
-            ID = Items.id;
-          });
-          var URL = `https://tasks.office.com/${this.Tenant}.com/EN-US/Home/Planner#/plantaskboard?groupId=${GroupId.Id}&planId=${ID}`;
-          var Planner = { Planner: URL };
-          var Results = Object.assign(GroupId, Planner);
-          GroupId = Results;
-          this.state.AllGroupsresults.map(Group => {
-            if (Group.Name === GroupId.Name) {
-              var Results2 = Object.assign(Group, Planner);
-              Group = Results2;
-            }
 
-          });
-        }
-        return this.setState({ MyGroupResultsFiltered: this.state.MyGroupResults });
-      } catch (error) {
-      }
-    });
-  }
-  public GetGroups() {
-    var
-      GroupIDListAll = [],
-      GroupIDListMy = [],
-      myarray = [];
-    this.props.context.msGraphClientFactory
-      .getClient()
-      .then((client: MSGraphClient): void => {
-        client
-          .api(`me/transitiveMemberOf/microsoft.graph.group?$filter=groupTypes/any(a:a eq 'unified')`)
-          .version("v1.0")
-          .get((err, res) => {
-            if (err) {
-            }
-            if (res) {
-              res.value.map((item) => {
-                myarray.push({ Name: item.displayName, Id: item.id, Description: item.description, Mail: item.mail, Visibility: item.visibility });
-                GroupIDListMy.push({ Id: item.id });
+  public async GetPlanner(groupId: string): Promise<string> {
+    const plans = await this.graphClient
+      .api(`/groups/${groupId}/planner/plans`)
+      .get();
 
-              });
-              this.setState({ MyGroupResultsFiltered: myarray, MyGroupResults: myarray });
-              this.GetPlanner();
-            }
-          });
-      });
-    this.props.context.msGraphClientFactory
-      .getClient()
-      .then((client: MSGraphClient): void => {
-        client
-          .api(`groups?$filter=groupTypes/any(a:a eq 'unified')`)
-          .version("v1.0")
-          .get((err, res) => {
-            if (err) {
-              // Do nothing
-            }
-            if (res) {
-              res.value.map((item) => {
-                this._arr.push({ Name: item.displayName, Id: item.id, Description: item.description, Mail: item.mail, Visibility: item.visibility });
-                GroupIDListAll.push([item.id]);
+    if (plans.value.length > 0) {
+      var PlanID;
 
-              });
-              this.setState({ AllGroupsresults: this._arr, AllGroupsresultsFiltered: this._arr });
-              this.GetPlanner();
-            }
-          });
+      // Note: Groups can have more than one plan, this
+      // just picks the last one for simplicity's sake
+      plans.value.map((plan: PlannerPlan) => {
+        PlanID = plan.id;
       });
 
+      return `https://tasks.office.com/${this.Tenant}.com/EN-US/Home/Planner#/plantaskboard?groupId=${groupId}&planId=${PlanID}`;
+    }
   }
-  public componentDidMount() {
+
+  public async GetGroups() {
+    const allGroupsArray: GroupDisplay[] = [];
+
+    try {
+      // Get all groups in the org
+      const allGroups = await this.graphClient
+        .api('groups')
+        .filter(`groupTypes/any(a:a eq 'unified')`)
+        .get();
+
+      // Get the user's joined groups
+      const joinedGroups = await this.graphClient
+        //.api(`me/transitiveMemberOf/microsoft.graph.group?$filter=groupTypes/any(a:a eq 'unified')&$select=id`)
+        .api('me/transitiveMemberOf/microsoft.graph.group')
+        .filter(`groupTypes/any(a:a eq 'unified')`)
+        .select('id')
+        .get();
+
+      await Promise.all(allGroups.value.map(async (group: Group) => {
+        // If this group's ID matches an ID in the user's
+        // groups, then the user is a member
+        const isUserMember = joinedGroups.value
+          .find((myGroup: Group) => { return myGroup.id === group.id; }) !== undefined;
+
+        const planner = await this.GetPlanner(group.id);
+
+        allGroupsArray.push({
+          Name: group.displayName,
+          Id: group.id,
+          Description: group.description,
+          Mail: group.mail,
+          Visibility: group.visibility,
+          IsUserMember: isUserMember,
+          Planner: planner
+        });
+      }));
+
+      this.setState({ AllGroups: allGroupsArray, ShownGroups: allGroupsArray });
+    } catch (err) {
+      console.log(JSON.stringify(err));
+      throw err;
+    }
+  }
+
+  public async componentDidMount() {
+    // Get the Graph client once here
+    try {
+      this.graphClient = await this.props.context.msGraphClientFactory.getClient();
+    } catch (err) {
+      console.log(JSON.stringify(err));
+    }
+
     this.GetGroups();
   }
+
   public render(): React.ReactElement<IGraphConsumerProps> {
     var Replaceregex = /\s+/g;
     return <div className={styles.test}>
       <div className={styles.tableCaptionStyle}>{this.state.title}
         <div>
-          {this.state.mode === 'Public' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('Public')}>Public</button> : 
+          {this.state.mode === 'Public' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('Public')}>Public</button> :
           <button className={styles.Filters} onClick={() => this.SwitchGroupList2('Public')}>Public</button>}
 
-          {this.state.mode === 'All' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('All')}>All</button> : 
+          {this.state.mode === 'All' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('All')}>All</button> :
           <button className={styles.Filters} onClick={() => this.SwitchGroupList2('All')}>All</button>}
 
-          {this.state.mode === 'Private' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('Private')}>Private</button> : 
+          {this.state.mode === 'Private' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList2('Private')}>Private</button> :
           <button className={styles.Filters} onClick={() => this.SwitchGroupList2('Private')}>Private</button>}
 
         </div>
-        <button className={styles.SwitchGroups} onClick={() => this.SwitchGroupList()}> View {this.state.title === 'My Groups' ? 
+        <button className={styles.SwitchGroups} onClick={() => this.SwitchGroupList()}> View {this.state.title === 'My Groups' ?
         'Groups in my Organization' : 'My Groups'}</button>
       </div>
       <div className={styles.tableStyle}>
@@ -192,50 +192,29 @@ export default class MicrosoftGroups extends React.Component<IGraphConsumerProps
           <div className={styles.Center} style={{ borderRight: 'none' }}>Visibility</div>
 
         </div>
-        {this.state.title === 'My Groups' ? this.state.MyGroupResultsFiltered.map(Group => {
-          var GroupEmailSplit = Group.Mail.split("@");
-          Group.Mail = GroupEmailSplit[0];
+        {this.state.ShownGroups.map(group => {
+          var GroupEmailSplit = group.Mail.split("@");
+          group.Mail = GroupEmailSplit[0];
           return <div className={styles.rowStyle}>
-            <div className={styles.ToolTipName}>{Group.Name}<span className={styles.ToolTip}>{Group.Description}</span></div>
-            <a className={styles.Center} href={`https://outlook.office365.com/mail/group/${this.Tenant}.com/${Group.Mail.toLowerCase()}/email`}>
+            <div className={styles.ToolTipName}>{group.Name}<span className={styles.ToolTip}>{group.Description}</span></div>
+            <a className={styles.Center} href={`https://outlook.office365.com/mail/group/${this.Tenant}.com/${group.Mail.toLowerCase()}/email`}>
               <Icon className={iconClass} style={{ color: '#087CD7' }} iconName="OutlookLogo"></Icon>
             </a>
-            <a className={styles.Center} href={`https://${this.Tenant}.sharepoint.com/sites/${Group.Mail}`}>
+            <a className={styles.Center} href={`https://${this.Tenant}.sharepoint.com/sites/${group.Mail}`}>
               <Icon className={iconClass} style={{ color: '#068B90' }} iconName="SharePointLogo"></Icon>
             </a>
-            <a className={styles.Center} href={`https://outlook.office365.com/calendar/group/${this.Tenant}.com/${Group.Name.replace(Replaceregex, '')}/view/week`}>
+            <a className={styles.Center} href={`https://outlook.office365.com/calendar/group/${this.Tenant}.com/${group.Name.replace(Replaceregex, '')}/view/week`}>
               <Icon className={iconClass} style={{ color: '#119AE2' }} iconName="Calendar"></Icon>
             </a>
 
             <div className={styles.Center}>
-              {Group.Planner === undefined ? <div></div> : <a href={Group.Planner}>
+              {group.Planner === undefined ? <div></div> : <a href={group.Planner}>
                 <Icon className={iconClass} style={{ color: '#077D3F' }} iconName="ViewListTree"></Icon></a>}
             </div>
-            <div className={styles.Center} style={{ borderRight: 'none' }}>{Group.Visibility}</div>
-          </div>;
-        }) : this.state.AllGroupsresultsFiltered.map(Group => {
-          var GroupEmailSplit = Group.Mail.split("@");
-          Group.Mail = GroupEmailSplit[0];
-          return <div className={styles.rowStyle}>
-            <div className={styles.ToolTipName}>{Group.Name}<span className={styles.ToolTip}>{Group.Description}</span></div>
-            <a className={styles.Center} href={`https://outlook.office365.com/mail/group/${this.Tenant}.com/${Group.Mail.toLowerCase()}/email`}>
-              <Icon className={iconClass} style={{ color: '#087CD7' }} iconName="OutlookLogo"></Icon>
-            </a>
-            <a className={styles.Center} href={`https://${this.Tenant}.sharepoint.com/sites/${Group.Mail}`}>
-              <Icon className={iconClass} style={{ color: '#068B90' }} iconName="SharePointLogo"></Icon>
-            </a>
-            <a className={styles.Center} href={`https://outlook.office365.com/calendar/group/${this.Tenant}.com/${Group.Name.replace(Replaceregex, '')}/view/week`}>
-              <Icon className={iconClass} style={{ color: '#119AE2' }} iconName="Calendar"></Icon>
-            </a>
-
-            <div className={styles.Center}>
-              {Group.Planner === undefined ? <div></div> : <a href={Group.Planner}>
-                <Icon className={iconClass} style={{ color: '#077D3F' }} iconName="ViewListTree"></Icon></a>}
-            </div>
-            <div className={styles.Center} style={{ borderRight: 'none' }}>{Group.Visibility}</div>
+            <div className={styles.Center} style={{ borderRight: 'none' }}>{group.Visibility}</div>
           </div>;
         })}
-      </div>;
+      </div>
     </div>;
   }
 }
