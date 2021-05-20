@@ -98,6 +98,9 @@ export default class MicrosoftGroups extends React.Component<IGraphConsumerProps
 
     if (plans.value.length > 0) {
       var PlanID;
+
+      // Note: Groups can have more than one plan, this
+      // just picks the last one for simplicity's sake
       plans.value.map((plan: PlannerPlan) => {
         PlanID = plan.id;
       });

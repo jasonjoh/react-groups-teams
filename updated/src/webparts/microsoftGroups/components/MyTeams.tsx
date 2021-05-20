@@ -65,6 +65,9 @@ export default class MyTeams extends React.Component<IMyTeamsProps, IMyTeamsStat
 
     if (plans.value.length > 0) {
       var PlanID;
+
+      // Note: Groups can have more than one plan, this
+      // just picks the last one for simplicity's sake
       plans.value.map((plan: PlannerPlan) => {
         PlanID = plan.id;
       });
@@ -75,7 +78,8 @@ export default class MyTeams extends React.Component<IMyTeamsProps, IMyTeamsStat
 
   public async GetTeamsURL(teamId: string): Promise<string> {
     var team: Team = await this.graphClient
-      .api(`/teams/${teamId}/?$select=webUrl`)
+      .api(`/teams/${teamId}`)
+      .select('webUrl')
       .get();
 
     return team.webUrl;
