@@ -3,147 +3,139 @@ import { MSGraphClient } from "@microsoft/sp-http";
 import { WebPartContext } from '@microsoft/sp-webpart-base';
 import styles from './MicrosoftGroups.module.scss';
 import { Icon } from 'office-ui-fabric-react/lib/Icon';
-import { ActionButton } from 'office-ui-fabric-react/lib/Button';
 import { mergeStyles } from 'office-ui-fabric-react/lib/Styling';
+import { Group, Team, PlannerPlan } from '@microsoft/microsoft-graph-types';
+import { TeamDisplay } from './TeamDisplay';
+
 export const iconClass = mergeStyles({
   fontSize: 32,
   height: 32,
   width: 32
 });
+
 export interface IMyTeamsProps {
   context: WebPartContext;
   hidden: Boolean;
 }
+
 export interface IUserItem {
   Topic: string;
   DeliveryDate: Date;
 }
 
 export interface IMyTeamsState {
-  MyGroupResults: any;
-  MyGroupsresultsFiltered: any;
-  plannerId: string;
-  Allgroupsdisplay: number;
-  mygroupsdisplay: number;
+  MyTeams: TeamDisplay[];
+  ShownTeams: TeamDisplay[];
   mode: string;
   title: string;
-  TenantURL: String;
 }
+
 export default class MyTeams extends React.Component<IMyTeamsProps, IMyTeamsState> {
   public Tenant = this.props.context.pageContext.web.absoluteUrl.split('.')[0].split('//')[1];
   private graphClient: MSGraphClient = null;
+
   constructor(props) {
     super(props);
     this.state = {
-      MyGroupResults: [],
-      MyGroupsresultsFiltered: [],
-      plannerId: '',
-      Allgroupsdisplay: 0,
-      mygroupsdisplay: 0,
+      MyTeams: [],
+      ShownTeams: [],
       mode: 'All',
       title: 'Teams in Microsoft Teams In My Organization',
-      TenantURL: ''
     };
   }
   public SwitchGroupList(Switch) {
+    var displayTeams;
+
     if (Switch === 'All') {
-      this.setState({ MyGroupsresultsFiltered: this.state.MyGroupResults });
+      displayTeams = this.state.MyTeams;
     }
     else {
-      const SwitchedMY = this.state.MyGroupResults.filter(item => item.Visibility === Switch);
-      this.setState({ MyGroupsresultsFiltered: SwitchedMY });
+      displayTeams = this.state.MyTeams.filter(item => item.Visibility === Switch);
     }
-    this.setState({ mode: Switch });
-  }
-  public async GetPlanner() {
-    this.state.MyGroupResults.map(async GroupId => {
-      try {
-        this.graphClient = await this.props.context.msGraphClientFactory.getClient();
-        const results: any = await this.graphClient
-          .api(`/groups/${GroupId.Id}/planner/plans`)
-          .version('v1.0')
-          .get();
-        if (results.value.length > 0) {
-          var ID; results.value.map(Items => {
-            ID = Items.id;
-          });
-          var URL = `https://tasks.office.com/${this.Tenant}.com/EN-US/Home/Planner#/plantaskboard?groupId=${GroupId.Id}&planId=${ID}`;
-          var Planner = { Planner: URL };
-          var Results = Object.assign(GroupId, Planner);
-          GroupId = Results;
-        }
-        return results.value;
-      } catch (error) {
-      }
+    this.setState({
+      mode: Switch,
+      ShownTeams: displayTeams
     });
+  }
 
-  }
-  public GetTeamsURL() {
-    this.state.MyGroupResults.map(Group => {
-      this.props.context.msGraphClientFactory
-        .getClient()
-        .then((client: MSGraphClient): void => {
-          client
-            .api(`/teams/${Group.Id}/?$select=webUrl`)
-            .version("v1.0")
-            .get((err, res) => {
-              if (err) {
-                return;
-              }
-              if (res) {
-                var Results = Object.assign(Group, { WebUrl: res.webUrl });
-                Group = Results;
-                this.setState({ MyGroupsresultsFiltered: this.state.MyGroupResults });
-              }
-            });
-        });
-    });
-  }
-  public async GetMail() {
-    this.state.MyGroupResults.map(Group => {
-      this.props.context.msGraphClientFactory
-        .getClient()
-        .then((client: MSGraphClient): void => {
-          client
-            .api(`groups/${Group.Id}/`)
-            .version("v1.0")
-            .get((err, res) => {
-              if (err) {
-                return;
-              }
-              if (res) {
-                var Results = Object.assign(Group, { Mail: res.mail });
-                Group = Results;
-              }
-            });
-        });
-    });
-  }
-  public componentDidMount() {
-    this.setState({ TenantURL: this.props.context.pageContext.web.absoluteUrl });
-    var array = [];
-    this.props.context.msGraphClientFactory
-      .getClient()
-      .then((client: MSGraphClient): void => {
-        client
-          .api(`me/joinedTeams`)
-          .version("v1.0")
-          .get((err, res) => {
-            if (err) {
-              return;
-            }
-            if (res) {
-              res.value.map((item) => {
-                array.push({ Name: item.displayName, Id: item.id, Description: item.description, Visibility: item.visibility });
-              });
-              this.setState({ MyGroupResults: array });
-              this.GetMail();
-              this.GetPlanner();
-              this.GetTeamsURL();
-            }
-          });
+  public async GetPlanner(groupId: string): Promise<string> {
+    const plans = await this.graphClient
+      .api(`/groups/${groupId}/planner/plans`)
+      .get();
+
+    if (plans.value.length > 0) {
+      var PlanID;
+
+      // Note: Groups can have more than one plan, this
+      // just picks the last one for simplicity's sake
+      plans.value.map((plan: PlannerPlan) => {
+        PlanID = plan.id;
       });
+
+      return `https://tasks.office.com/${this.Tenant}.com/EN-US/Home/Planner#/plantaskboard?groupId=${groupId}&planId=${PlanID}`;
+    }
   }
+
+  public async GetTeamsURL(teamId: string): Promise<string> {
+    var team: Team = await this.graphClient
+      .api(`/teams/${teamId}`)
+      .select('webUrl')
+      .get();
+
+    return team.webUrl;
+  }
+
+  public async GetMail(groupId: string): Promise<string> {
+    const group: Group = await this.graphClient
+      .api(`groups/${groupId}`)
+      .get();
+
+    return group.mail;
+  }
+
+  public async GetMyTeams() {
+    try {
+      const myTeams = await this.graphClient
+      .api(`me/joinedTeams`)
+      .get();
+
+      const myTeamsArray: TeamDisplay[] = [];
+      await Promise.all(myTeams.value.map(async (team: Team) => {
+        const mail = await this.GetMail(team.id);
+        const planner = await this.GetPlanner(team.id);
+        const teamUrl = await this.GetTeamsURL(team.id);
+
+        const teamDisplay: TeamDisplay = {
+          Name: team.displayName,
+          Id: team.id,
+          Description: team.description,
+          Visibility: team.visibility,
+          Mail: mail,
+          Planner: planner,
+          WebUrl: teamUrl
+        };
+
+        myTeamsArray.push(teamDisplay);
+      }));
+
+      this.setState({ MyTeams: myTeamsArray, ShownTeams: myTeamsArray });
+
+    } catch (err) {
+      console.log(JSON.stringify(err));
+    }
+  }
+
+  public async componentDidMount() {
+    // Get the Graph client once here
+    try {
+      this.graphClient = await this.props.context.msGraphClientFactory.getClient();
+    } catch (err) {
+      console.log(JSON.stringify(err));
+    }
+
+    this.GetMyTeams();
+  }
+
   public render(): React.ReactElement<IMyTeamsProps> {
     var Replaceregex = /\s+/g;
     return this.props.hidden ? <div></div> : <div className={styles.test}>
@@ -155,7 +147,7 @@ export default class MyTeams extends React.Component<IMyTeamsProps, IMyTeamsStat
         {this.state.mode === 'All' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList('All')}>All</button> :
           <button className={styles.Filters} onClick={() => this.SwitchGroupList('All')}>All</button>}
 
-        {this.state.mode === 'Private' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList('Private')}>Private</button> : 
+        {this.state.mode === 'Private' ? <button className={styles.SelectedFilter} onClick={() => this.SwitchGroupList('Private')}>Private</button> :
         <button className={styles.Filters} onClick={() => this.SwitchGroupList('Private')}>Private</button>}</div>
 
       </div>
@@ -169,30 +161,30 @@ export default class MyTeams extends React.Component<IMyTeamsProps, IMyTeamsStat
           <div className={styles.Center}>WebUrl</div>
           <div className={styles.Center} style={{ borderRight: 'none' }}>Visibility</div>
         </div>
-        {this.state.MyGroupsresultsFiltered.map(Team => {
-          Team.Visibility = Team.Visibility.substr(0, 1).toUpperCase() + Team.Visibility.substr(1);
-          var GroupEmailSplit = Team.Mail.split("@");
+        {this.state.ShownTeams.map(team => {
+          team.Visibility = team.Visibility.substr(0, 1).toUpperCase() + team.Visibility.substr(1);
+          var GroupEmailSplit = team.Mail.split("@");
           var Mail = GroupEmailSplit[0];
           return (
             <div className={styles.rowStyle}>
-              <div className={styles.ToolTipName}>{Team.Name}<span className={styles.ToolTip}>{Team.Description}</span></div>
+              <div className={styles.ToolTipName}>{team.Name}<span className={styles.ToolTip}>{team.Description}</span></div>
               <a className={styles.Center} href={`https://outlook.office365.com/mail/group/${this.Tenant}.com/${Mail.toLowerCase()}/email`}>
                 <Icon className={iconClass} style={{ color: '#087CD7' }} iconName="OutlookLogo"></Icon></a>
               <a className={styles.Center} href={`https://${this.Tenant}.sharepoint.com/sites/${Mail}`}>
                 <Icon className={iconClass} style={{ color: '#068B90' }} iconName="SharePointLogo"></Icon>
               </a>
-              <a className={styles.Center} href={`https://outlook.office365.com/calendar/group/${this.Tenant}.com/${Team.Name.replace(Replaceregex, '')}/view/week`}>
+              <a className={styles.Center} href={`https://outlook.office365.com/calendar/group/${this.Tenant}.com/${team.Name.replace(Replaceregex, '')}/view/week`}>
                 <Icon className={iconClass} style={{ color: '#119AE2' }} iconName="Calendar"></Icon>
               </a>
               <div className={styles.Center}>
-                {Team.Planner === undefined ? <div></div> : <a href={Team.Planner}>
+                {team.Planner === undefined ? <div></div> : <a href={team.Planner}>
                   <Icon className={iconClass} style={{ color: '#077D3F' }} iconName="ViewListTree"></Icon>
                 </a>}
               </div>
-              <a className={styles.Center} href={`${Team.WebUrl}`}>
+              <a className={styles.Center} href={`${team.WebUrl}`}>
                 <Icon className={iconClass} style={{ color: '#424AB5' }} iconName="TeamsLogo"></Icon>
               </a>
-              <div className={styles.Center} style={{ borderRight: 'none' }}>{Team.Visibility}</div>
+              <div className={styles.Center} style={{ borderRight: 'none' }}>{team.Visibility}</div>
             </div>
           );
         })}</div></div>;

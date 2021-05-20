@@ -52,7 +52,7 @@
       padding-top :  10px ;
       color :  white ;
     }
-    .tableStyle{ 
+    .tableStyle{
       display: table;
       min-width: 100%;
       margin-right: auto;
@@ -93,7 +93,7 @@
     background-color: $ms-color-themeDark;
     padding: 20px;
   }
-  .CellStyle{ 
+  .CellStyle{
     display:  table-cell ;
     border:  solid ;
      border-color :  white ;
@@ -101,15 +101,15 @@
     min-width :  75px ;
     height :  30px ;
     width: fit-content;
-    padding-top :  10px ;         
-  } 
+    padding-top :  10px ;
+  }
   .buttons {
     display:  table-cell ;
-    
+
     text-align :  center ;
     width :  160px ;
     height :  30px ;
-    padding-top :  10px ;      
+    padding-top :  10px ;
   }
   .column {
     @include ms-Grid-col;
@@ -246,7 +246,7 @@
         border: none;
         color: white;
         border-right: 2px solid white;
-        
+
   }
   .MainViewCenter :hover{
     text-decoration: underline;
@@ -264,7 +264,7 @@
   .Filters:focus {
     outline: none;
   }
-  .SelectedFilter { 
+  .SelectedFilter {
     cursor: pointer;
       background-color: "[theme: themeDark, default: #0078d7]";
       color: #fff;
@@ -304,7 +304,7 @@
         padding-top :  10px ;
         color :  white ;
       }
-      .tableStyle{ 
+      .tableStyle{
         display: table;
         min-width: 100%;
         margin-right: auto;
@@ -346,7 +346,7 @@
       background-color: $ms-color-themeDark;
       padding: 20px;
     }
-    .CellStyle{ 
+    .CellStyle{
       display:  table-cell ;
       border:  solid ;
        border-color :  white ;
@@ -354,15 +354,15 @@
       min-width :  75px ;
       height :  30px ;
       width: fit-content;
-      padding-top :  10px ;         
-    } 
+      padding-top :  10px ;
+    }
     .buttons {
       display:  table-cell ;
-      
+
       text-align :  center ;
       width :  160px ;
       height :  30px ;
-      padding-top :  10px ;      
+      padding-top :  10px ;
     }
     .column {
       @include ms-Grid-col;
@@ -371,33 +371,33 @@
       @include ms-xlPush2;
       @include ms-lgPush1;
     }
-  
+
     .title {
       @include ms-font-xl;
       @include ms-fontColor-white;
     }
-  
+
     .subTitle {
       @include ms-font-l;
       @include ms-fontColor-white;
     }
-  
+
     .description {
       @include ms-font-l;
       @include ms-fontColor-white;
     }
-  
+
     .button {
       // Our button
       text-decoration: none;
       height: 32px;
-  
+
       // Primary Button
       min-width: 80px;
       background-color: $ms-color-themePrimary;
       border-color: $ms-color-themePrimary;
       color: $ms-color-white;
-  
+
       // Basic Button
       outline: transparent;
       position: relative;
@@ -410,7 +410,7 @@
       cursor: pointer;
       display: inline-block;
       padding: 0 16px;
-  
+
       .label {
         font-weight: $ms-font-weight-semibold;
         font-size: $ms-font-size-m;
@@ -421,5 +421,3 @@
         display: inline-block;
       }
     }
-  
-  

@@ -1,23 +1,31 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
   "solution": {
-    "name": "react-groups-client-side-solution",
-    "id": "e562b13d-7e90-4a1e-810c-ccde0ff27866",
+    "name": "microsoft-groups-client-side-solution",
+    "id": "d6ae0a73-f999-41f1-8212-df165ef3972d",
     "version": "1.0.0.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
-    "webApiPermissionRequests":[{
-      "resource": "Microsoft Graph",
-      "scope": "Groups.Read.All"
-    }, {
-      "resource": "Team",
-      "scope": "Teams.ReadBasic.All"
-    }]
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": ""
+    },
+    "webApiPermissionRequests": [
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Group.Read.All"
+      },
+      {
+        "resource": "Microsoft Graph",
+        "scope": "Team.ReadBasic.All"
+      }
+    ]
   },
-  
-  
   "paths": {
-    "zippedPackage": "solution/react-groups.sppkg"
+    "zippedPackage": "solution/microsoft-groups.sppkg"
   }
 }

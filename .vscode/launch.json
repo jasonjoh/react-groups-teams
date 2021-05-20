@@ -9,7 +9,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "https://localhost:4321/temp/workbench.html",
-      "webRoot": "${workspaceRoot}/updated",
+      "webRoot": "${workspaceRoot}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
         "webpack:///.././src/*": "${webRoot}/src/*",
@@ -26,7 +26,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "https://m365x234416.sharepoint.com/sites/SalesAndMarketing/_layouts/workbench.aspx",
-      "webRoot": "${workspaceRoot}/updated",
+      "webRoot": "${workspaceRoot}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
         "webpack:///.././src/*": "${webRoot}/src/*",
